@@ -1,0 +1,10 @@
+tests for hungarian algorithm
+
+$,bill,ted,barry 
+jane,5, 0, 10
+joan,15, 20, 0
+jasmine,25, 35, 30
+
+				{5, 0, 10},
+				{15, 20, 0},
+				{25, 35, 30}

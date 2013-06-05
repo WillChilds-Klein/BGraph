@@ -1,0 +1,22 @@
+# buyer list: 0, 1 and 2 are buyers
+0
+1
+2
+$
+# seller list: 3 and 4 are sellers
+3
+4
+$
+# buyer network: 0 can buy from 3, etc
+0 3
+1 4
+2 3
+$
+# seller network: 3 can sell to 0 and 2, etc
+3 0 2
+4 1
+$
+# edge capacity: 0 and 3 can exchange up to 2 chips in total, 1 and 4 can exchange 3, etc
+0 3 2
+1 4 3
+2 3 2

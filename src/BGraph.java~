@@ -1,0 +1,389 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+/**
+ *
+ * @author Feng
+ */
+//package edu.harvard.eecs.airg.coloredtrails.shared.types;
+
+import java.applet.Applet;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.Line2D;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import javax.swing.JFrame;
+
+
+public class BGraph extends Applet{//Canvas implements Serializable{
+	private static final long serialVersionUID = 1L;
+	private ArrayList<String> buyers;
+	private ArrayList<String> sellers;
+	private HashMap<String,ArrayList<String>> buyerNetwork;
+	private HashMap<String,ArrayList<String>> sellerNetwork;
+	private HashMap<String,HashMap<String,Integer>> edgeCapacity;
+	private EdgeSet edges;
+	private Matrix matrix;
+	private JFrame frame;
+	EdgeSetQueue esq;
+
+	public void paint(Graphics g){
+    	// Set locations of buyer nodes.
+    	HashMap<String, Integer> bLoc = new HashMap<String, Integer>();
+    	for(int i=0;i<buyers.size();i++){
+    		bLoc.put(buyers.get(i), new Integer(100*i+50));
+    	}
+    	// Set locations of seller nodes.
+    	HashMap<String, Integer> sLoc= new HashMap<String, Integer>();
+    	for(int i=0; i < sellers.size(); i++){
+    		sLoc.put(sellers.get(i), new Integer(100*i+50));
+    	}
+    	
+    	// Draw edges. Pass in ArrayList of Buyer/Seller Pairs.
+    	Edge p;
+    	while(!edges.isEmpty()){
+    		p = edges.getNext();
+    		Graphics2D g2 = (Graphics2D) g;
+            // normalize weights to make noticeable line thickness gradient on scale from 1-15
+    		float normConstant = 10; // empirically determined to provide good gradient
+    		float weight = (float) matrix.get((Integer) p.getBuyer(), (Integer) p.getSeller());
+    		System.out.println(p.toString() + "    " + weight);
+    		float normThickness = weight / matrix.getLM() * normConstant;
+    		System.out.println("nomeThickness = " + normThickness);
+    		if(weight > 0 && normThickness < 1)
+    			normThickness = 1;
+    		if(weight > 0) 
+    			g2.setStroke(new BasicStroke(normThickness));
+            // determine color based on directionality
+            switch(p.d){
+            	case fromBuyer:
+            		g2.setColor(Color.RED);
+            		break;
+            	case fromSeller:
+            		g2.setColor(Color.GREEN);
+            		break;
+            	case none:
+            		g2.setColor(Color.BLACK);
+            		break;
+            	default:
+            		//whoopsies. error.
+            }
+            
+            if(normThickness >= 1) // if edge actually exists...double check this. could be source for error
+            // in the case that lowest value is normalized improperly...
+            	g2.draw(new Line2D.Float(250+25, ((Integer) sLoc.get(sellers.get((Integer) p.getSeller())))+25, 50+25, ((Integer) bLoc.get(buyers.get((Integer) p.getBuyer())))+25));
+    	}
+    	
+    	// Draw and fill in buyer nodes.
+    	for(String s : buyers){
+    		g.setColor(Color.RED);
+    		g.fillOval(50, ((Integer)bLoc.get(s)).intValue(), 50, 50);
+    		g.setColor(Color.BLACK);
+    		g.drawString(s, 50+25, ((Integer) bLoc.get(s)).intValue()+25);
+    	}
+    	// Draw and fill in seller nodes.
+    	for(String s : sellers){
+    		g.setColor(Color.BLUE);
+    		g.fillOval(250, ((Integer)sLoc.get(s)).intValue(), 50, 50);
+    		g.setColor(Color.BLACK);
+    		g.drawString(s, 250+25, ((Integer)sLoc.get(s)).intValue()+25);
+    	}
+    }
+    
+    public void draw(){
+        int width=0;
+        if (buyerNetwork.size()>sellerNetwork.size())
+            width=buyerNetwork.size();
+        else
+            width=sellerNetwork.size();
+        System.out.println("We are starting display");
+        frame = new JFrame ();
+        frame.setTitle ("Bipartite Graph");
+        frame.setSize (200*width,500);
+        frame.setDefaultCloseOperation (JFrame.EXIT_ON_CLOSE);
+        // Add the canvas and show the JFrame
+        frame.add(this);
+        frame.setVisible(true);
+    }
+    
+	public BGraph(String filepath, String algorithm){
+	    buyers = new ArrayList<String>();
+	    sellers = new ArrayList<String>();
+	    buyerNetwork = new HashMap<String, ArrayList<String>>();
+	    sellerNetwork = new HashMap<String, ArrayList<String>>();
+	    edgeCapacity = new HashMap<String, HashMap<String, Integer>>();
+	    edges = new EdgeSet();
+	    createNetworks();
+	    try{
+	    	buildFromFile(filepath);
+	    }
+	    catch (Exception e){
+	    	System.err.println(e);
+	    }
+	    if(algorithm.equals("hungarian"))
+	    	esq = (new AlgorithmEngine(matrix, buyers, sellers)).hungarian();
+	    else if(algorithm.equals("complete"))
+	    	esq = (new AlgorithmEngine(matrix, buyers, sellers)).complete();
+	}
+	
+	public BGraph(/*String filepath, String algorithm*/){
+	    buyers = new ArrayList<String>();
+	    sellers = new ArrayList<String>();
+	    buyerNetwork = new HashMap<String, ArrayList<String>>();
+	    sellerNetwork = new HashMap<String, ArrayList<String>>();
+	    edgeCapacity = new HashMap<String, HashMap<String, Integer>>();
+	    edges = new EdgeSet();
+	    //createNetworks();
+//	    try{
+//	    	buildFromFile(filepath);
+//	    }
+//	    catch (Exception e){
+//	    	System.err.println(e);
+//	    }
+	    //if(algorithm.equals("hungarian"))
+	    	//esq = (new AlgorithmEngine(matrix, buyers, sellers)).hungarian();
+	    //else if(algorithm.equals("complete"))
+	    	//esq = (new AlgorithmEngine(matrix, buyers, sellers)).complete();
+	}
+    
+    private void animate(){
+    	// populate edges per algorithm logic
+    	//System.out.println(esq.toString());
+    	while(esq.hasNext()){
+    		edges = esq.pop();
+    		//System.out.println("!! " + edges + " !!");
+			this.repaint();
+    		try{ Thread.sleep(5000); } catch(InterruptedException e){}
+			//System.out.println(edges.toString());
+    	}
+    			
+	}
+	
+	public void buildFromFile (String filepath) throws java.io.FileNotFoundException{
+		System.out.println("We are starting parsing");
+		try{
+			this.parseCSV(filepath);
+		}
+		catch(IOException e){
+			// fail gracefully
+			System.exit(1);
+		}
+		
+		// populate buyerNetwork. Initialize with complete graph.
+		// key is id (represented as String) of buyer node, value is id (represented as String)
+		// of corresponding seller node.
+		System.out.println("We are parsing the Buyer Network.");
+		ArrayList<String> temp;
+		for(String b : buyers){
+			temp = new ArrayList<String>();
+			for(String s: sellers){
+				temp.add(s); // making complete graph
+			}
+			buyerNetwork.put(b,temp);
+		}
+		
+		// populate sellerNetwork. Initialize with complete graph.
+		// key is id (represented as String) of seller node, value is id (represented as String)
+		// of corresponding buyer node.
+		System.out.println("We are parsing the Seller Network.");
+		for(String b : buyers){
+			temp = new ArrayList<String>();
+			for(String s : sellers){
+				temp.add(s); // making complete graph
+			}
+			sellerNetwork.put(b,temp);
+		}
+		System.out.println("We have finished parsing.");
+		
+		// store values of edge weights. hash by buyer, then seller to find edge.
+		String tempBuyer, tempSeller;
+		Integer tempWeight;
+		for(int i = 0; i < matrix.getM(); i++){ // if matrix doesn't include id's, change i to 0
+			tempBuyer = buyers.get(i); 
+			for(int j = 0; j < matrix.getN(); j++){ // if matrix doesn't include id's, change i to 0
+				tempSeller = sellers.get(j); 
+				tempWeight = matrix.get(j, i);
+				if(edgeCapacity.get(tempBuyer) == null) {
+					edgeCapacity.put(tempBuyer,new HashMap<String, Integer>());
+				}
+				if(tempWeight.equals("-")) // no edge
+					edgeCapacity.get(tempBuyer).put(tempSeller, 0); // max int
+				else
+					edgeCapacity.get(tempBuyer).put(tempSeller, tempWeight); // store weight as Integer
+			}
+		}
+	}
+	
+	public void writeToFile(String f) throws java.io.FileNotFoundException{
+	    // write to file. write another csv back out with optimal edges.
+	}
+	
+	public void setBuyer(ArrayList<String> b){
+	    buyers = b;
+	}
+	
+	public void setSeller(ArrayList<String> s){
+	    sellers = s;
+	}
+	
+	public HashMap<String, ArrayList<String>> getBuyerNetwork(){
+	    return buyerNetwork;
+	}
+	
+	public HashMap<String, ArrayList<String>> getSellerNetwork(){
+	    return sellerNetwork;
+	}
+	
+    public ArrayList<String> getBuyers(){
+	    return buyers;
+    }
+	
+    public ArrayList<String> getSellers(){
+	    return sellers;
+	}
+     
+    public Integer getEdgeCapacity(String perGameId, String opponentId){
+    	Integer weight = Integer.MAX_VALUE; //infinity
+    	if(edgeCapacity.containsKey(perGameId) && edgeCapacity.get(perGameId).containsKey(opponentId)){
+    		weight = edgeCapacity.get(perGameId).get(opponentId);
+    	}
+    	 
+    	return weight;
+    }
+
+	public void createNetworks(){
+	    int nb = buyers.size ();
+	    int ns = sellers.size ();
+	    
+	    // change this bit to scale for more nodes...whats it do?
+	    if(nb > 8)
+	    	nb = 8;
+	    if(ns > 8)
+	    	ns = 8;
+	    
+	    // populate networks
+	    for(int i = 0 ; i < buyers.size () ; i++){
+	    	buyerNetwork.put (buyers.get (i), new ArrayList<String>());
+	    }
+	    for(int i = 0 ; i < sellers.size () ; i++){
+	    	sellerNetwork.put (sellers.get (i), new ArrayList<String>());
+	    }
+	}
+	
+    public ArrayList<String> getNeighbors(String id){
+        if (buyerNetwork.keySet().contains(id))
+            return (ArrayList<String>)buyerNetwork.get(id);
+        else if (sellerNetwork.keySet().contains(id))
+            return (ArrayList<String>)sellerNetwork.get(id);
+        
+        return new ArrayList<String>();
+    }
+    public String toString(){
+        return buyerNetwork.toString();
+        
+    }
+    
+    //public static void main (String args[]){
+    public void init(){
+    	/**/
+    	BGraph bgraph = new BGraph();//"test2.csv", "hungarian");
+    	try{ // try-catch block for applet use only.
+	    	buildFromFile("test2.csv");
+	    }
+	    catch (Exception e){
+	    	System.err.println(e);
+	    }
+    	esq = (new AlgorithmEngine(matrix, buyers, sellers)).hungarian(); // also for applet
+    	/** /
+    	BGraph bgraph = new BGraph("test.csv", "complete");
+    	/**/
+    	bgraph.draw();
+    	long time = System.currentTimeMillis();
+    	while(System.currentTimeMillis() < time+200){}
+    	bgraph.animate();
+    }
+
+	public void parseCSV(String filepath) throws IOException{
+    	// NOTE: need to make this more robust. test more edge cases and fail gracefully
+    	// NOTE: if this crashes on some kind of parsing error, the whole applet crashes...
+    	// USAGE: for use with CSV files of letter-strings integers (not decimals). delimiter is any non-alpha-numeric character.
+    	// EVENTUALLY: change this to parse doubles so we can have non-integer weights.
+    	// '-' char denotes no edge between nodes. any other non-alphanumeric character will not be parsed.
+    	
+    	ArrayList<ArrayList<String>> arr = new ArrayList<ArrayList<String>>();
+    	if(!filepath.substring(filepath.length()-4, filepath.length()).equals(".csv")){ // check .csv file appendage
+    		System.err.println("Please build from a .csv file!");
+    		// fail gracefully?
+    	}
+    		
+    	BufferedReader input = new BufferedReader(new FileReader(filepath));
+    	String currLine;
+    	ArrayList<String> temp;
+    	while((currLine = input.readLine()) != null){
+    		temp = new ArrayList<String>();
+    		String [] vals = currLine.split("[^0-9^a-z^A-Z]*[^0-9^a-z^A-Z^-]"); // toggle for multiple delimiter chars case
+    		for (String str : vals){
+    			temp.add(str);
+    		}
+    		arr.add(temp);
+    	}
+    	
+    	/**print matrix for testing**/
+    	for(ArrayList<String> r : arr){
+    		for(String i : r)
+    			System.out.print(i + ", ");
+    		System.out.println();
+    	}/**/
+    	
+    	// sellers will be populated by first row of adjacency matrix.
+		for(int i = 1; i < arr.get(0).size(); i++){ // if matrix doesn't include id's, change i to 0
+			this.sellers.add(arr.get(0).get(i));
+		}
+
+		// buyers will be populated by first column of adjacency matrix.
+		for(int i = 1; i < arr.size(); i++){ // if matrix doesn't include id's, change i to 0
+			this.buyers.add(arr.get(i).get(0));
+		}
+		
+		matrix = new Matrix(buyers.size(), sellers.size());
+		//System.out.println("m = " + matrix.matrix.size() + ", n = " + matrix.matrix.get(0).size());
+		for(int i = 1; i < arr.get(0).size(); i++){
+			for(int j = 1; j < arr.size(); j++){
+				this.matrix.put(i-1, j-1, Integer.parseInt(arr.get(i).get(j)));
+				//System.out.println(Integer.parseInt(arr.get(i).get(j)));
+			}
+		}
+    		
+    	input.close();
+    }
+   
+	// http://stackoverflow.com/questions/4112701/drawing-a-line-with-arrow-in-java
+	
+//	private final int ARR_SIZE = 4;
+//
+//    void drawArrow(Graphics g1, int x1, int y1, int x2, int y2) {
+//        Graphics2D g = (Graphics2D) g1.create();
+//
+//        double dx = x2 - x1, dy = y2 - y1;
+//        double angle = Math.atan2(dy, dx);
+//        int len = (int) Math.sqrt(dx*dx + dy*dy);
+//        AffineTransform at = AffineTransform.getTranslateInstance(x1, y1);
+//        at.concatenate(AffineTransform.getRotateInstance(angle));
+//        g.transform(at);
+//
+//        // Draw horizontal arrow starting in (0, 0)
+//        g.drawLine(0, 0, len, 0);
+//        g.fillPolygon(new int[] {len, len-ARR_SIZE, len-ARR_SIZE, len},
+//                      new int[] {0, -ARR_SIZE, ARR_SIZE, 0}, 4);
+//    }
+	
+}
