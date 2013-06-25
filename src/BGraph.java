@@ -10,35 +10,35 @@
 //package edu.harvard.eecs.airg.coloredtrails.shared.types;
 
 import java.awt.BasicStroke;
-import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.geom.Line2D;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import javax.imageio.ImageIO;
 import javax.jnlp.*;
 
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 
 
-public class BGraph extends Canvas implements Serializable{
+public class BGraph extends JPanel implements ActionListener{
 	private static final long serialVersionUID = 1L;
-	private static ArrayList<String> buyers;
-	private static ArrayList<String> sellers;
-	private HashMap<String,ArrayList<String>> buyerNetwork;
-	private HashMap<String,ArrayList<String>> sellerNetwork;
-	private HashMap<String,HashMap<String,Integer>> edgeCapacity;
+	private static ArrayList<Integer> buyers;
+	private static ArrayList<Integer> sellers;
+	private HashMap<Integer,HashMap<Integer,Integer>> edgeCapacity;
 	private EdgeSet edges;
         private EdgeSet original;
 	private Matrix matrix;
@@ -46,22 +46,12 @@ public class BGraph extends Canvas implements Serializable{
 	EdgeSetQueue esq;
         int barb;  
         double phi;
-        private Image BuyerImage;
-        private Image HouseImage;
-
-	public void paint(Graphics g){
-    	// Set locations of buyer nodes.
-//    	HashMap<String, Integer> bLoc = new HashMap<String, Integer>();
-//    	for(int i=0;i<buyers.size();i++){
-//    		bLoc.put(buyers.get(i), new Integer(65*i+50));
-//    	}
-//    	// Set locations of seller nodes.
-//    	HashMap<String, Integer> sLoc= new HashMap<String, Integer>();
-//    	for(int i=0; i < sellers.size(); i++){
-//    		sLoc.put(sellers.get(i), new Integer(65*i+50));
-//    	}
-    	
-            
+        private Image BuyerImage, HouseImage;
+        private Icon firstIcon, prevIcon, nextIcon, lastIcon;
+        private JButton first, prev, next, last;
+        private JPanel jp;
+        
+	public void paintComponent(Graphics g){
             
         System.out.println("---!!!_--" + edges.toString());
     	// Draw edges. Pass in ArrayList of Buyer/Seller Pairs.
@@ -73,9 +63,8 @@ public class BGraph extends Canvas implements Serializable{
             // normalize weights to make noticeable line thickness gradient on scale from 1-15
             float normConstant = 5; // empirically determined to provide good gradient
             float weight = (float) matrix.get((Integer) e.getBuyer(), (Integer) e.getSeller());
-            //System.out.println(p.toString() + "    " + weight);
+            System.out.println("!2!3! " + e.toString());
             float normThickness = (weight - matrix.getSM()) / (matrix.getLM() - matrix.getSM()) * normConstant;
-            //System.out.println("normThickness = " + normThickness);
             if(weight > 0 && normThickness < 1)
     		normThickness = 1;
             if(weight > 0) 
@@ -85,16 +74,16 @@ public class BGraph extends Canvas implements Serializable{
             Line2D.Double line = null;
             if(e.d == Edge.Direction.fromBuyer){
                 g2.setPaint(Color.BLACK); // subject to change
-                x1 = 100;
+                x2 = 100;
                 y1 = ((Integer) e.getSeller())*65 + 50+25;
-                x2 = 250;
+                x1 = 250;
                 y2 = ((Integer) e.getBuyer())*65 + 50+25;
             }
             if(e.d == Edge.Direction.fromSeller){
                 g2.setPaint(Color.CYAN.darker()); // subject to change
-                x1 = 250;
+                x2 = 250;
                 y1 = ((Integer) e.getBuyer())*65 + 50+25;
-                x2 = 100;
+                x1 = 100;
                 y2 = ((Integer) e.getSeller())*65 + 50+25;
             }
             if(e.d == Edge.Direction.none){
@@ -107,13 +96,14 @@ public class BGraph extends Canvas implements Serializable{
             
             if(normThickness >= 1){ // if edge actually exists...double check this. could be source for error
             // in the case that lowest value is normalized improperly...
-                line = new Line2D.Double(x1,y1,x2,y2);
-                theta = Math.atan2(y2-y1, x2-x1);
-                drawArrow(g2, theta, x2, y2);
+                line = new Line2D.Double(x2,y2,x1,y1);
+                theta = Math.atan2(y1-y2, x1-x2);
+                drawArrow(g2, theta, x1, y1);
                 g2.draw(line);
             }
                 
     	}
+        edges.resetIndex();
         
     	// Draw and fill in buyer nodes.
         ArrayList q = edges.getQ();
@@ -121,7 +111,7 @@ public class BGraph extends Canvas implements Serializable{
         ArrayList p = edges.getP();
         String s;
     	for(int i = 0; i < buyers.size(); i++){
-                s = buyers.get(i);
+                s = "" + buyers.get(i);
     		g.setColor(Color.BLACK);
     		//g.fillOval(50, i*65 + 50, 50, 50);
                 g.drawImage(BuyerImage, 50, i*65+50, this);
@@ -133,7 +123,7 @@ public class BGraph extends Canvas implements Serializable{
     	}
     	// Draw and fill in seller nodes.
     	for(int i = 0; i < sellers.size(); i++){
-                s = sellers.get(i);
+                s = "" + sellers.get(i);
     		g.setColor(Color.BLACK);
     		g.drawImage(HouseImage, 245, i*65+55, this);
                 //g.fillOval(250, i*65 + 50, 50, 50);
@@ -152,7 +142,7 @@ public class BGraph extends Canvas implements Serializable{
     	}
     	// Draw and fill in seller nodes.
     	for(int i = 0; i < sellers.size(); i++){
-                s = sellers.get(i);
+                s = "" + sellers.get(i);
     		g.setColor(Color.BLACK);
     		g.drawImage(HouseImage, 550, i*65+50, this);
                 //g.fillOval(550, i*65 + 50, 50, 50);
@@ -161,36 +151,80 @@ public class BGraph extends Canvas implements Serializable{
     	}
         
         e = null;
-        System.out.println(original.toString());
+        //System.out.println(original.toString());
         Graphics2D g2 = (Graphics2D) g;
         while(original.hasNext()){
             e = original.getNext();
-            System.out.println(e.toString());
+            //System.out.println(e.toString());
             //Graphics2D g2 = (Graphics2D) g;
             // normalize weights to make noticeable line thickness gradient
             float normConstant = 5; // empirically determined to provide good thickness gradient
-            float weight = (float) matrix.get(Integer.parseInt((String) e.getBuyer())-1, Integer.parseInt((String) e.getSeller())-1);
+            float weight = (float) matrix.get((Integer) e.getBuyer(), (Integer) e.getSeller());
             float normThickness = (weight - matrix.getSM()) / (matrix.getLM() - matrix.getSM()) * normConstant;
             if(normThickness < 1)
     		normThickness = 1;
             g2.setStroke(new BasicStroke(normThickness));
             double x1 = 400;
-            double y1 = (Integer.parseInt((String) e.getBuyer()) - 1)*65 + 50+25;
+            double y1 = ((Integer) e.getBuyer())*65 + 50+25;
             double x2 = 550;
-            double y2 = (Integer.parseInt((String) e.getSeller()) - 1)*65 + 50+25;
+            double y2 = ((Integer) e.getSeller())*65 + 50+25;
             Line2D.Double line = new Line2D.Double(x1,y1,x2,y2);
             g2.draw(line);
         }
         original.resetIndex();
         
+        
+    }
+        
+    public void actionPerformed(ActionEvent e){
+        this.removeAll();
+        //edges = esq.getCurr();
+        if(e.getActionCommand().equals("first")){
+            while(esq.hasPrev()) // linear time, could be constant but meh...
+                edges = esq.getPrev(); // not really worth it, ya know?
+        }
+        else if(e.getActionCommand().equals("prev")){
+            if(esq.hasPrev())
+                edges = esq.getPrev();
+        }
+        else if(e.getActionCommand().equals("next")){
+            if(esq.hasNext())
+                edges = esq.getNext();
+        }
+        else if(e.getActionCommand().equals("last")){
+            while(esq.hasNext())
+                edges = esq.getNext();
+            System.out.println("you've pressed last!!");
+        }
+        else{
+            // error
+        }
+        // enable/disable as appropriate
+        if(!esq.hasPrev()){
+            first.setEnabled(false);
+            prev.setEnabled(false);
+        }
+        else{
+            first.setEnabled(true);
+            prev.setEnabled(true);
+        }
+        if(!esq.hasNext()){
+            next.setEnabled(false);
+            last.setEnabled(false);
+        }
+        else{
+            next.setEnabled(true);
+            last.setEnabled(true);
+        }
+        frame.repaint();
     }
     
     public void draw(){
         int height=0;
-        if (buyerNetwork.size()>=sellerNetwork.size())
-            height = buyerNetwork.size();
+        if (buyers.size()>=sellers.size())
+            height = buyers.size();
         else
-            height = sellerNetwork.size();
+            height = sellers.size();
         System.out.println("We are starting display");
         frame = new JFrame ();
         frame.setBackground(Color.WHITE); // make better white
@@ -198,22 +232,70 @@ public class BGraph extends Canvas implements Serializable{
         frame.setSize (800, Math.max(height*75, 500)); // enough space for buttons
         frame.setDefaultCloseOperation (JFrame.EXIT_ON_CLOSE);
         // Add the canvas and show the JFrame
+        //frame.add(this);
         frame.add(this);
         frame.setVisible(true);
+        // set tooltips
+        first.setToolTipText("See initial matching.");
+        prev.setToolTipText("See matching in previous iteration.");
+        next.setToolTipText("See matching in next iteration.");
+        last.setToolTipText("See final matching.");
+        // add buttons
+        JPanel btnpnl = new JPanel();
+        btnpnl.add(first);
+        btnpnl.add(prev);
+        btnpnl.add(next);
+        btnpnl.add(last);
+        first.setEnabled(false);
+        prev.setEnabled(false);
+        if(!esq.hasNext()){
+            next.setEnabled(false);
+            last.setEnabled(false);
+        }
+        else{
+            next.setEnabled(true);
+            last.setEnabled(true);
+        }
+        frame.add(btnpnl);
     }
     
 	public BGraph(String algorithm){
-	    buyers = new ArrayList<String>();
-	    sellers = new ArrayList<String>();
-	    buyerNetwork = new HashMap<String, ArrayList<String>>();
-	    sellerNetwork = new HashMap<String, ArrayList<String>>();
-	    edgeCapacity = new HashMap<String, HashMap<String, Integer>>();
+	    buyers = new ArrayList<Integer>();
+	    sellers = new ArrayList<Integer>();
+//	    buyerNetwork = new HashMap<String, ArrayList<String>>();
+//	    sellerNetwork = new HashMap<String, ArrayList<String>>();
+	    edgeCapacity = new HashMap<Integer, HashMap<Integer, Integer>>();
 	    edges = new EdgeSet();
-	    createNetworks();
+	    //createNetworks();
             FileOpenService fos;
             FileContents fc = null;
             barb = 20;                   // barb length  
             phi = Math.PI/6;             // 30 degrees barb angle
+            // initialize button icons
+            ClassLoader cl;
+            try{
+                cl = this.getClass().getClassLoader();
+                firstIcon = new ImageIcon(ImageIO.read(cl.getResourceAsStream("images/first.png")).getScaledInstance(15, 15, Image.SCALE_DEFAULT));
+                prevIcon = new ImageIcon(ImageIO.read(cl.getResourceAsStream("images/prev.png")).getScaledInstance(15, 15, Image.SCALE_DEFAULT));
+                nextIcon = new ImageIcon(ImageIO.read(cl.getResourceAsStream("images/next.png")).getScaledInstance(15, 15, Image.SCALE_DEFAULT));
+                lastIcon = new ImageIcon(ImageIO.read(cl.getResourceAsStream("images/last.png")).getScaledInstance(15, 15, Image.SCALE_DEFAULT));
+            }
+            catch(IOException e){}
+            // init button stuff
+            // start codes for drawing buttons
+            first = new JButton(firstIcon);
+            first.setActionCommand("first");
+            first.addActionListener(this);
+            prev = new JButton(prevIcon);
+            prev.setActionCommand("prev");
+            prev.addActionListener(this);
+            next = new JButton(nextIcon);
+            next.setActionCommand("next");
+            next.addActionListener(this);
+            last = new JButton(lastIcon);
+            last.setActionCommand("last");
+            last.addActionListener(this);
+            jp = new JPanel();
             try {
                 fos = (FileOpenService) ServiceManager.lookup("javax.jnlp.FileOpenService");
             }
@@ -236,25 +318,29 @@ public class BGraph extends Canvas implements Serializable{
                 e.printStackTrace();
             }
             try{
-                BuyerImage = ImageIO.read(new File("buyer.png")).getScaledInstance(60, 60, Image.SCALE_DEFAULT);
-                HouseImage = ImageIO.read(new File("house.png")).getScaledInstance(60, 60, Image.SCALE_DEFAULT);
+                cl = this.getClass().getClassLoader();
+                BuyerImage = ImageIO.read(cl.getResourceAsStream("images/buyer.png")).getScaledInstance(60, 60, Image.SCALE_DEFAULT);
+                HouseImage = ImageIO.read(cl.getResourceAsStream("images/house.png")).getScaledInstance(60, 60, Image.SCALE_DEFAULT);
             }
+            //catch(java.net.URISyntaxException uri){}
             catch(IOException e){}
             
             if(algorithm.equals("hungarian"))
 	    	esq = (new AlgorithmEngine(matrix, buyers, sellers)).hungarian().getEdgeSetQueue();
+            else if(algorithm.equals("hungarianGeneralization"))
+                esq = (new AlgorithmEngine(matrix, buyers, sellers)).hungarianGeneralization().getEdgeSetQueue();
 	    else if(algorithm.equals("complete"))
 	    	esq = (new AlgorithmEngine(matrix, buyers, sellers)).complete();
 	}
     
-    private void animate(){
-    	while(esq.hasNext()){
-    		edges = esq.pop();
-		this.repaint();
-    		try{ Thread.sleep(4000); } catch(InterruptedException e){}
-    	}
-    			
-    }
+//    private void animate(){
+//    	while(esq.hasNext()){
+//    		edges = esq.getNext();
+//		this.repaint();
+//    		try{ Thread.sleep(4000); } catch(InterruptedException e){}
+//    	}
+//    			
+//    }
 	
 	public void buildFromFile (InputStream is) throws java.io.FileNotFoundException{
 		System.out.println("We are starting parsing");
@@ -266,42 +352,16 @@ public class BGraph extends Canvas implements Serializable{
 			System.exit(1);
 		}
 		
-		// populate buyerNetwork. Initialize with complete graph.
-		// key is id (represented as String) of buyer node, value is id (represented as String)
-		// of corresponding seller node.
-		System.out.println("We are parsing the Buyer Network.");
-		ArrayList<String> temp;
-		for(String b : buyers){
-			temp = new ArrayList<String>();
-			for(String s: sellers){
-				temp.add(s); // making complete graph
-			}
-			buyerNetwork.put(b,temp);
-		}
-		
-		// populate sellerNetwork. Initialize with complete graph.
-		// key is id (represented as String) of seller node, value is id (represented as String)
-		// of corresponding buyer node.
-		System.out.println("We are parsing the Seller Network.");
-		for(String b : buyers){
-			temp = new ArrayList<String>();
-			for(String s : sellers){
-				temp.add(s); // making complete graph
-			}
-			sellerNetwork.put(b,temp);
-		}
-		System.out.println("We have finished parsing.");
-		
 		// store values of edge weights. hash by buyer, then seller to find edge.
-		String tempBuyer, tempSeller;
+		Integer tempBuyer, tempSeller;
 		Integer tempWeight;
 		for(int i = 0; i < matrix.getM(); i++){ // if matrix doesn't include id's, change i to 0
 			tempBuyer = buyers.get(i); 
 			for(int j = 0; j < matrix.getN(); j++){ // if matrix doesn't include id's, change i to 0
 				tempSeller = sellers.get(j); 
-				tempWeight = matrix.get(j, i);
+				tempWeight = matrix.get(i, j);
 				if(edgeCapacity.get(tempBuyer) == null) {
-					edgeCapacity.put(tempBuyer,new HashMap<String, Integer>());
+					edgeCapacity.put(tempBuyer, new HashMap<Integer, Integer>());
 				}
 				if(tempWeight.equals("-")) // no edge
 					edgeCapacity.get(tempBuyer).put(tempSeller, 0); // max int
@@ -311,88 +371,14 @@ public class BGraph extends Canvas implements Serializable{
 		}
 	}
 	
-	public void writeToFile(String f) throws java.io.FileNotFoundException{
-	    // write to file. write another csv back out with optimal edges.
-	}
 	
-	public void setBuyer(ArrayList<String> b){
-	    buyers = b;
-	}
-	
-	public void setSeller(ArrayList<String> s){
-	    sellers = s;
-	}
-	
-	public HashMap<String, ArrayList<String>> getBuyerNetwork(){
-	    return buyerNetwork;
-	}
-	
-	public HashMap<String, ArrayList<String>> getSellerNetwork(){
-	    return sellerNetwork;
-	}
-	
-    public ArrayList<String> getBuyers(){
-	    return buyers;
-    }
-	
-    public ArrayList<String> getSellers(){
-	    return sellers;
-	}
-     
-    public Integer getEdgeCapacity(String perGameId, String opponentId){
-    	Integer weight = Integer.MAX_VALUE; //infinity
-    	if(edgeCapacity.containsKey(perGameId) && edgeCapacity.get(perGameId).containsKey(opponentId)){
-    		weight = edgeCapacity.get(perGameId).get(opponentId);
-    	}
-    	 
-    	return weight;
-    }
-
-	public void createNetworks(){
-	    int nb = buyers.size ();
-	    int ns = sellers.size ();
-	    
-	    // change this bit to scale for more nodes...whats it do?
-	    if(nb > 8)
-	    	nb = 8;
-	    if(ns > 8)
-	    	ns = 8;
-	    
-	    // populate networks
-	    for(int i = 0 ; i < buyers.size () ; i++){
-	    	buyerNetwork.put (buyers.get (i), new ArrayList<String>());
-	    }
-	    for(int i = 0 ; i < sellers.size () ; i++){
-	    	sellerNetwork.put (sellers.get (i), new ArrayList<String>());
-	    }
-	}
-	
-    public ArrayList<String> getNeighbors(String id){
-        if (buyerNetwork.keySet().contains(id))
-            return (ArrayList<String>)buyerNetwork.get(id);
-        else if (sellerNetwork.keySet().contains(id))
-            return (ArrayList<String>)sellerNetwork.get(id);
-        
-        return new ArrayList<String>();
-    }
-    public String toString(){
-        return buyerNetwork.toString();
-        
-    }
     
     public static void main (String args[]){
     	/**/
     	BGraph bgraph = new BGraph("hungarian");
-    	/** /
-    	BGraph bgraph = new BGraph("test.csv", "complete");
     	/**/
-        //try{ Thread.sleep(2000); } catch(InterruptedException e){}
     	if(buyers.size() <= 10){
             bgraph.draw();
-//    	long time = System.currentTimeMillis();
-//    	while(System.currentTimeMillis() < time+200){}
-        //try{ Thread.sleep(2000); } catch(InterruptedException e){}
-            bgraph.animate();
         }
     }
 
@@ -403,7 +389,7 @@ public class BGraph extends Canvas implements Serializable{
     	// EVENTUALLY: change this to parse doubles so we can have non-integer weights.
     	// '-' char denotes no edge between nodes. any other non-alphanumeric character will not be parsed.
     	
-    	ArrayList<ArrayList<String>> arr = new ArrayList<ArrayList<String>>();
+    	ArrayList<ArrayList<Integer>> arr = new ArrayList<ArrayList<Integer>>();
 //    	if(!filepath.substring(filepath.length()-4, filepath.length()).equals(".csv")){ // check .csv file appendage
 //    		System.err.println("Please build from a .csv file!");
 //    		// fail gracefully?
@@ -411,39 +397,38 @@ public class BGraph extends Canvas implements Serializable{
     		
     	BufferedReader input = new BufferedReader(new InputStreamReader(is, "UTF-8"));
     	String currLine;
-    	ArrayList<String> temp;
+    	ArrayList<Integer> temp;
     	while((currLine = input.readLine()) != null){
-    		temp = new ArrayList<String>();
+    		temp = new ArrayList<Integer>();
     		String [] vals = currLine.split("[^0-9]*[^0-9]"); // toggle for multiple delimiter chars case
     		for (String str : vals){
-    			temp.add(str);
+    			temp.add(Integer.parseInt(str));
     		}
     		arr.add(temp);
     	}
     	
     	/**print matrix for testing**/
-    	for(ArrayList<String> r : arr){
-    		for(String i : r)
+    	for(ArrayList<Integer> r : arr){
+    		for(Integer i : r)
     			System.out.print(i + ", ");
     		System.out.println();
     	}/**/
     	
     	// sellers will be populated by first row of adjacency matrix.
 		for(int i = 0; i < arr.get(0).size(); i++){ // if matrix doesn't include id's, change i to 0
-			this.sellers.add("" + (i+1));
+			this.sellers.add(new Integer(i));
 		}
 
 		// buyers will be populated by first column of adjacency matrix.
 		for(int i = 0; i < arr.size(); i++){ // if matrix doesn't include id's, change i to 0
-			this.buyers.add("" + (i+1));
+			this.buyers.add(new Integer(i));
 		}
 		
 		matrix = new Matrix(buyers.size(), sellers.size());
 		//System.out.println("m = " + matrix.matrix.size() + ", n = " + matrix.matrix.get(0).size());
-		for(int i = 0; i < arr.get(0).size(); i++){
-			for(int j = 0; j < arr.size(); j++){
-				this.matrix.put(i, j, Integer.parseInt(arr.get(i).get(j)));
-				//System.out.println(Integer.parseInt(arr.get(i).get(j)));
+		for(int i = 0; i < arr.size(); i++){
+			for(int j = 0; j < arr.get(0).size(); j++){
+				this.matrix.put(i, j, arr.get(i).get(j));
 			}
 		}
                 
@@ -470,24 +455,6 @@ private void drawArrow(Graphics2D g2, double theta, double x0, double y0)  {
     y = y0 - barb * Math.sin(theta - phi);  
     g2.draw(new Line2D.Double(x0, y0, x, y));  
 }
-	// http://stackoverflow.com/questions/4112701/drawing-a-line-with-arrow-in-java
-	
-//	private final int ARR_SIZE = 4;
-//
-//    void drawArrow(Graphics g1, int x1, int y1, int x2, int y2) {
-//        Graphics2D g = (Graphics2D) g1.create();
-//
-//        double dx = x2 - x1, dy = y2 - y1;
-//        double angle = Math.atan2(dy, dx);
-//        int len = (int) Math.sqrt(dx*dx + dy*dy);
-//        AffineTransform at = AffineTransform.getTranslateInstance(x1, y1);
-//        at.concatenate(AffineTransform.getRotateInstance(angle));
-//        g.transform(at);
-//
-//        // Draw horizontal arrow starting in (0, 0)
-//        g.drawLine(0, 0, len, 0);
-//        g.fillPolygon(new int[] {len, len-ARR_SIZE, len-ARR_SIZE, len},
-//                      new int[] {0, -ARR_SIZE, ARR_SIZE, 0}, 4);
-//    }
+	// http://stackoverflow.com/questions/4112701/drawing-a-line-with-arrow-in-jav
 	
 }

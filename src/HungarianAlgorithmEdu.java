@@ -267,7 +267,7 @@ public class HungarianAlgorithmEdu {
 		int[] zero_RC = new int[2];
 		
 		//Step number: its value guides the algorithm through the various steps.
-		int step = 2;//1;
+		int step = 1;
 		
 		//When this changes to "true" the assignment would be completed.
 		boolean done = false;	

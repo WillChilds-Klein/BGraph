@@ -8,8 +8,9 @@
         <description kind="short">BGraph</description>
         
         
-    </information>
-    <update check="always"/>
+    <offline-allowed/>
+</information>
+    <update check="background"/>
     <security>
 <all-permissions/>
 </security>
@@ -19,6 +20,8 @@
         
         
     <jar href="lib/netx.jar"/>
+<jar href="lib/commons-math3-3.2-javadoc.jar"/>
+<jar href="lib/commons-math3-3.2.jar"/>
 </resources>
     <application-desc main-class="BGraph">
         

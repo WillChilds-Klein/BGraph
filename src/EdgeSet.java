@@ -55,6 +55,10 @@ public class EdgeSet extends Object{
                 return null;
 	}
         
+        public boolean isEmpty(){
+            return edgeset.size() > 0;
+        }
+        
         public ArrayList getQ(){
             return this.q;
         }

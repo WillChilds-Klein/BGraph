@@ -54,7 +54,7 @@ public class HungarianAlgorithm{
 	static ArrayList<Float> q;
 	static ArrayList<Float> p;
 	
-	public HungarianAlgorithm(Matrix matrix, ArrayList<String> buyers, ArrayList<String> sellers){
+	public HungarianAlgorithm(Matrix matrix, ArrayList<Integer> buyers, ArrayList<Integer> sellers){
 		Integer[][] arr = matrix.toArray();
 		
 		array = new double[arr.length][arr[0].length];
@@ -146,17 +146,17 @@ public class HungarianAlgorithm{
 			
 		return largest;
 	}
-	public static double[][] transpose		//Transposes a double[][] array.
-	(double[][] array)	
-	{
-		double[][] transposedArray = new double[array[0].length][array.length];
-		for (int i=0; i<transposedArray.length; i++)
-		{
-			for (int j=0; j<transposedArray[i].length; j++)
-			{transposedArray[i][j] = array[j][i];}
-		}
-		return transposedArray;
-	}
+//	public static double[][] transpose		//Transposes a double[][] array.
+//	(double[][] array)	
+//	{
+//		double[][] transposedArray = new double[array[0].length][array.length];
+//		for (int i=0; i<transposedArray.length; i++)
+//		{
+//			for (int j=0; j<transposedArray[i].length; j++)
+//			{transposedArray[i][j] = array[j][i];}
+//		}
+//		return transposedArray;
+//	}
 	public static double[][] copyOf			//Copies all elements of an array to a new array.
 	(double[][] original)	
 	{
@@ -277,6 +277,7 @@ public class HungarianAlgorithm{
 	}
 	public static int hg_step1(int step, double[][] cost)
 	{
+                System.out.println("STEP 1");
 		//What STEP 1 does:
 		//For each row of the cost matrix, find the smallest element
 		//and subtract it from from every other element in its row. 
@@ -311,6 +312,8 @@ public class HungarianAlgorithm{
 		//Marks uncovered zeros as starred and covers their row and column.
 		
 		// initial matches in EQ subgraph
+            
+            System.out.println("STEP 2");
 		
 		EdgeSet es = new EdgeSet();
 		
@@ -336,6 +339,10 @@ public class HungarianAlgorithm{
 		// initialize q's to all 0's
 		// need to get array of lowest values per row of ORIGINAL cost matrix. subtract cost from original largest weight
 		for(int i = 0; i < cost.length; i++){
+                    System.out.println("cost.length: " + cost.length);
+                    System.out.println("cost[0].length: " + cost[0].length);
+                    System.out.println("q.size(): " + q.size());
+                    System.out.println("p.size(): " + p.size());
 			minval = (float) Integer.MAX_VALUE;
 			for(int j = 0; j < cost[0].length; j++){
 				if(cost[i][j] < minval){
@@ -346,7 +353,7 @@ public class HungarianAlgorithm{
 			q.set(i, new Float(maxWeight - originalRowLeast[row] - minval));
 		}
 		// initialize p's to all 0's
-		for(int i = 0; i < cost.length; i++){
+		for(int i = 0; i < cost[0].length; i++){
 			p.set(i, new Float(0));
 		}
 		
@@ -360,6 +367,7 @@ public class HungarianAlgorithm{
 	}
 	public static int hg_step3(int step, int[][] mask, int[] colCover)
 	{
+            System.out.println("STEP 3");
 		//What STEP 3 does:
 		//Cover columns of starred zeros. Check if all columns are covered.
 		
@@ -393,6 +401,7 @@ public class HungarianAlgorithm{
 	}
 	public static int hg_step4(int step, double[][] cost, int[][] mask, int[] rowCover, int[] colCover, int[] zero_RC)
 	{
+            System.out.println("STEP 4");
 		//What STEP 4 does:
 		//Find an uncovered zero in cost and prime it (if none go to step 6). Check for star in same row:
 		//if yes, cover the row and uncover the star's column. Repeat until no uncovered zeros are left
@@ -500,6 +509,7 @@ public class HungarianAlgorithm{
 	}
 	public static int hg_step5(int step, int[][] mask, int[] rowCover, int[] colCover, int[] zero_RC)
 	{
+            System.out.println("STEP 5");
 		//What STEP 5 does:	
 		//Construct series of alternating primes and stars. Start with prime from step 4.
 		//Take star in the same column. Next take prime in the same row as the star. Finish
@@ -636,6 +646,7 @@ public class HungarianAlgorithm{
 	}
 	public static int hg_step6(int step, double[][] cost, int[] rowCover, int[] colCover, double maxCost, int[][] mask)
 	{
+            System.out.println("STEP 6");
 		//What STEP 6 does:
 		//Find smallest uncovered value in cost: a. Add it to every element of covered rows
 		//b. Subtract it from every element of uncovered columns. Go to step 4.
@@ -645,7 +656,7 @@ public class HungarianAlgorithm{
 		//double maxval = findLargest(cost, rowCover, colCover, maxCost);
 		double delta = minval;//maxCost - maxval;
 		
-		System.out.println("Weight delta = " + delta + "     " + maxWeight);
+		//System.out.println("Weight delta = " + delta + "     " + maxWeight);
 		
 		for (int i=0; i<rowCover.length; i++)
 		{

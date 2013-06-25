@@ -22,7 +22,7 @@ public class Matrix {
 		for(int i = 0; i < m; i++){
 			temp = new ArrayList<Integer>();
 			for(int j = 0; j < n; j++){
-				System.out.println("i = " + i + ", j = " + j);
+				//System.out.println("i = " + i + ", j = " + j);
 				temp.add(j, new Integer(0));
 			}
 			matrix.add(i, temp);
