@@ -424,10 +424,10 @@ public class BGraph extends JPanel implements ActionListener{
 			this.buyers.add(new Integer(i));
 		}
 		
-		matrix = new Matrix(buyers.size(), sellers.size());
-		//System.out.println("m = " + matrix.matrix.size() + ", n = " + matrix.matrix.get(0).size());
+		matrix = new Matrix(arr.size(), arr.get(0).size());
 		for(int i = 0; i < arr.size(); i++){
 			for(int j = 0; j < arr.get(0).size(); j++){
+                            
 				this.matrix.put(i, j, arr.get(i).get(j));
 			}
 		}

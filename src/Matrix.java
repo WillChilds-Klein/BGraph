@@ -44,6 +44,27 @@ public class Matrix {
 			matrix.add(i, temp);
 		}
         }
+        
+        public void squarify(){
+            int size = Math.max(m, n);
+            for(int i = 0; i < size; i++){
+                if(i >= m){
+                    matrix.add(i, new ArrayList(size));
+                    for(int j = 0; j < size; j++){
+                        matrix.get(i).add(j, 0);
+                    }
+                }
+                else{
+                    for(int j = 0; j < size; j++){
+                        if(j >= n)
+                            matrix.get(i).add(j, 0);
+                    }
+                }
+            }
+            m = size;
+            n = size;
+            System.out.println(this.toString());
+        }
 	
 	public Integer get(int m, int n){
 		return matrix.get(m).get(n);

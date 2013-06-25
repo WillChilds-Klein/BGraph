@@ -55,7 +55,9 @@ public class HungarianAlgorithm{
 	static ArrayList<Float> p;
 	
 	public HungarianAlgorithm(Matrix matrix, ArrayList<Integer> buyers, ArrayList<Integer> sellers){
-		Integer[][] arr = matrix.toArray();
+		matrix.squarify();
+            
+                Integer[][] arr = matrix.toArray();
 		
 		array = new double[arr.length][arr[0].length];
 		for(int i = 0; i < arr.length; i++)
